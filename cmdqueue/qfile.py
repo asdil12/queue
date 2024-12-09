@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import os
 import tomlkit
 import fcntl
 
@@ -38,6 +39,7 @@ def decode(qstr: str) -> list:
 lockfds = {}
 def lock_file(file: str):
     global lockfds
+    touch(file)
     if not lockfds.get(file):
         lockfds[file] = open(file)
     fcntl.flock(lockfds[file], fcntl.LOCK_EX)
@@ -64,3 +66,8 @@ def dump(cmds: list, file: str, unlock=True):
         f.write(s)
         if unlock:
             unlock_file(file)
+
+
+def touch(file):
+    if not os.path.exists(file):
+        open(file, 'a').close()

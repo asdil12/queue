@@ -1,6 +1,7 @@
 import os
+from termcolor import colored
 
-def print_row(col_lens, row, separator='|', space=' ', outer_space=True, limit_col=None, separator_on_extra_rows=True):
+def print_row(col_lens, row, separator='|', space=' ', outer_space=True, limit_col=None, separator_on_extra_rows=True, colors=None):
     line_length = sum(col_lens) + 3*(len(col_lens)-1) + (2 if outer_space else 0)
     if limit_col != None:
         try:
@@ -32,6 +33,9 @@ def print_row(col_lens, row, separator='|', space=' ', outer_space=True, limit_c
                 row_normalized.append(col.ljust(limit_col_max_len, space))
             else:
                 row_normalized.append(col.ljust(col_lens[i], space))
+        if colors:
+            for i, color in enumerate(colors):
+                row_normalized[i] = colored(row_normalized[i], color)
         if in_extra_row and not separator_on_extra_rows:
             line = (space * 3).join(row_normalized)
         else:
@@ -49,7 +53,7 @@ def get_col_len(col):
     else:
         return len(col)
 
-def print_table(headers, rows, separator='|', outer_space=True, limit_col=None, separator_on_extra_rows=True):
+def print_table(headers, rows, separator='|', outer_space=True, limit_col=None, separator_on_extra_rows=True, colors=None):
     """
         headers: list of headers
         rows: list of rows each being a list of fields
@@ -57,6 +61,7 @@ def print_table(headers, rows, separator='|', outer_space=True, limit_col=None, 
         outer_space: add a space as padding to the left and right side of each row
         limit_col: number of column to limit in width to still fit the table on screen
         separator_on_extra_rows: support multiline fields (field being a list instead of a string)
+        colors: two dimensional array containing table colors
     """
     col_lens = [get_col_len(hc) for hc in headers or rows[0]]
     for row in rows:
@@ -65,5 +70,6 @@ def print_table(headers, rows, separator='|', outer_space=True, limit_col=None, 
     if headers:
         print_row(col_lens, headers, separator, outer_space=outer_space, limit_col=limit_col)
         print_row(col_lens, ['']*len(col_lens), '+', '-', outer_space, limit_col=limit_col)
-    for row in rows:
-        print_row(col_lens, row, separator, outer_space=outer_space, limit_col=limit_col, separator_on_extra_rows=separator_on_extra_rows)
+    for i, row in enumerate(rows):
+        row_colors = colors[i] if colors else None
+        print_row(col_lens, row, separator, outer_space=outer_space, limit_col=limit_col, separator_on_extra_rows=separator_on_extra_rows, colors=row_colors)
