@@ -1,0 +1,180 @@
+#!/usr/bin/python3
+
+import os
+import sys
+import argparse
+import tomlkit
+import math
+import time
+import psutil
+import subprocess
+from termcolor import colored
+
+sys.path.insert(0, os.path.abspath(os.path.dirname(__file__) + '/..'))
+
+from cmdqueue import running_file, finished_file, queues_dir, queue_file_path, ls_queues, cmdfmt, envpwdfmt
+from cmdqueue import qfile
+from cmdqueue import table
+from cmdqueue.time import *
+
+
+def setup_argparser():
+    ap = argparse.ArgumentParser()
+
+    ap.add_argument('cmd', nargs=argparse.REMAINDER, type=str, help="Add command to queue")
+    ap.add_argument('-E', dest='full_env', action='store_true', help='include full env')
+    ap.add_argument('-e', metavar='ENV_VAR', dest='env_vars', action='append', help='env vars to include (can be repeatedly specified)')
+    ap.add_argument('-q', dest='queue', default='default', help='queue to use')
+    ap.add_argument('-l', dest='list', action='store_true', help='list queued commands')
+    ap.add_argument('-L', dest='list_queues', action='store_true', help='list queues')
+    ap.add_argument('-m', dest='move', metavar=('FROM', 'TO'), nargs=2, help='move queue entry')
+    ap.add_argument('-d', dest='delete', metavar='ENTRY', help='delete queue entry')
+    ap.add_argument('-D', dest='delete_queue', metavar='QUEUE', help='delete queue')
+    ap.add_argument('-r', dest='run', action='store_true', help='run commands from queue')
+    ap.add_argument('-R', dest='show_running', action='store_true', help='show currently running commands')
+    ap.add_argument('-f', dest='show_finished', action='store_true', help='show finished commands')
+    ap.add_argument('-a', dest='absolute_timeranges', action='store_true', help='show absolute time ranges in runtime')
+    return ap
+
+
+def touch(file):
+    if not os.path.exists(file):
+        open(file, 'a').close()
+
+
+if __name__ == '__main__':
+    ap = setup_argparser()
+    args = ap.parse_args()
+
+    os.makedirs(queues_dir, exist_ok=True)
+    queue_file = queue_file_path(args.queue)
+    touch(queue_file)
+    touch(running_file)
+    touch(finished_file)
+
+    if args.cmd:
+        env = {'PWD': os.environ['PWD']}
+        if args.full_env:
+            env.update(os.environ)
+        elif args.env_vars:
+            for ek in args.env_vars:
+                env[ek] = os.environ[ek]
+        q = qfile.load(queue_file, unlock=False)
+        q.append({'cmd': args.cmd, 'env': env})
+        qfile.dump(q, queue_file)
+    elif args.list_queues:
+        rows = []
+        for queue in ls_queues():
+            scheduled = len(qfile.load(queue_file_path(queue)))
+            running = len([e for e in qfile.load(running_file) if e['queue'] == queue])
+            finished = len([e for e in qfile.load(finished_file) if e['queue'] == queue])
+            rows.append([queue, str(scheduled), str(running), str(finished)])
+        table.print_table(('Queue', 'Scheduled', 'Running', 'Finished'), rows, limit_col=0)
+    elif args.list:
+        q = qfile.load(queue_file)
+        rows = []
+        id_len = math.floor(math.log10(max(len(q),1))) + 1
+        for i, e in enumerate(q):
+            i += 1
+            rows.append((f"{i:>{id_len}}", cmdfmt(e), *envpwdfmt(e)))
+        table.print_table((f"{'#':>{id_len}}", 'Command', 'Working directory', 'Environment'), rows, limit_col=3)
+    elif args.run:
+        my_pid = os.getpid()
+        while True:
+            q = qfile.load(queue_file, unlock=False)
+            if not q:
+                qfile.unlock_file(queue_file)
+                # TODO: inotify or look for mtime
+                time.sleep(1)
+                continue
+            r = qfile.load(running_file, unlock=False)
+            # cleanup orphaned entries not being worked on anymore
+            # TODO: move them back to the queue?
+            r = [running_process for running_process in r if psutil.pid_exists(running_process['qpid'])]
+            entry = q[0]
+            del q[0]
+            entry['queue'] = args.queue
+            entry['qpid'] = my_pid
+            entry['started'] = now()
+            r.append(entry)
+            qfile.dump(r, running_file)
+            qfile.dump(q, queue_file)
+            print(colored(f"Running cmd: {cmdfmt(entry)}", 'cyan'))
+            try:
+                ret = subprocess.run(entry['cmd'], cwd=entry['env']['PWD'], env=entry['env'])
+                returncode = ret.returncode
+            except FileNotFoundError:
+                returncode = 127
+            except PermissionError:
+                returncode = 126
+            print(colored(f"{entry['cmd'][0]} returned {returncode}", 'red' if returncode else 'green'))
+            entry['returncode'] = returncode
+            entry['finished'] = now()
+            r = qfile.load(running_file, unlock=False)
+            # delete entry from running
+            r = [running_process for running_process in r if running_process['qpid'] != my_pid]
+            f = qfile.load(finished_file, unlock=False)
+            f.append(entry)
+            qfile.dump(f, finished_file)
+            qfile.dump(r, running_file)
+    elif args.move:
+        # user facing list starts with 1 but lists start at 0
+        from_id, to_id = map(lambda i: int(i)-1, args.move)
+        q = qfile.load(queue_file, unlock=False)
+        entry = q.pop(from_id)
+        if to_id > from_id:
+            # we just removed one item so the index shifts
+            to_id -= 1
+        q.insert(to_id, entry)
+        qfile.dump(q, queue_file)
+    elif args.delete:
+        # user facing list starts with 1 but lists start at 0
+        id = int(args.delete) - 1
+        q = qfile.load(queue_file, unlock=False)
+        q.pop(id)
+        qfile.dump(q, queue_file)
+    elif args.delete_queue:
+        qf = queue_file_path(args.delete_queue)
+        qfile.lock_file(qf)
+        os.unlink(qf)
+    elif args.show_running:
+        q = qfile.load(running_file)
+        rows = []
+        for e in q:
+            if '-q' in sys.argv and args.queue != e['queue']:
+                continue
+            runtime = htdiff(now(), e['started'], args.absolute_timeranges)
+            rows.append((e['queue'], cmdfmt(e), runtime, *envpwdfmt(e)))
+        table.print_table(('Queue', 'Command', 'Runtime', 'Working directory', 'Environment'), rows, limit_col=4)
+    elif args.show_finished:
+        q = qfile.load(finished_file)
+        rows = []
+        for e in q:
+            if '-q' in sys.argv and args.queue != e['queue']:
+                continue
+            runtime = htdiff(e['finished'], e['started'], args.absolute_timeranges)
+            rows.append((e['queue'], cmdfmt(e), str(e['returncode']), runtime, *envpwdfmt(e)))
+        table.print_table(('Queue', 'Command', 'Status', 'Runtime', 'Working directory', 'Environment'), rows, limit_col=5)
+    else:
+        qr = reversed(qfile.load(running_file))
+        qf = reversed(qfile.load(finished_file))
+        qs = []
+        for queue in ls_queues():
+            if '-q' in sys.argv and args.queue != queue:
+                continue
+            q = list(reversed(qfile.load(queue_file_path(queue))))
+            enum_start = len(q)
+            for i, e in enumerate(q):
+                e['i'] = enum_start - i # reversed counting
+                e['queue'] = queue
+                qs.append(e)
+        rows = []
+        for e in qs:
+            rows.append((e['queue'], cmdfmt(e), f"sched:{e['i']}", "", *envpwdfmt(e))) 
+        for e in qr:
+            runtime = htdiff(now(), e['started'], args.absolute_timeranges)
+            rows.append((e['queue'], cmdfmt(e), "running", runtime, *envpwdfmt(e))) 
+        for e in qf:
+            runtime = htdiff(e['finished'], e['started'], args.absolute_timeranges)
+            rows.append((e['queue'], cmdfmt(e), f"exit:{e['returncode']}", runtime, *envpwdfmt(e))) 
+        table.print_table(('Queue', 'Command', 'Status', 'Runtime', 'Working directory', 'Environment'), rows, limit_col=5)
