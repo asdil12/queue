@@ -3,7 +3,6 @@
 import os
 import sys
 import argparse
-import tomlkit
 import math
 import time
 import psutil
@@ -24,7 +23,7 @@ def setup_argparser():
     ap.add_argument('cmd', nargs=argparse.REMAINDER, type=str, help="Add command to queue")
     ap.add_argument('-E', dest='full_env', action='store_true', help='include full env')
     ap.add_argument('-e', metavar='ENV_VAR', dest='env_vars', action='append', help='env vars to include (can be repeatedly specified)')
-    ap.add_argument('-q', dest='queue', default='default', help='queue to use')
+    ap.add_argument('-q', dest='queue', help='queue to use (defaults to "default")')
     ap.add_argument('-l', dest='list', action='store_true', help='list queued commands')
     ap.add_argument('-L', dest='list_queues', action='store_true', help='list queues')
     ap.add_argument('-m', dest='move', metavar=('FROM', 'TO'), nargs=2, help='move queue entry')
@@ -33,7 +32,7 @@ def setup_argparser():
     ap.add_argument('-r', dest='run', action='store_true', help='run commands from queue')
     ap.add_argument('-R', dest='show_running', action='store_true', help='show currently running commands')
     ap.add_argument('-f', dest='show_finished', action='store_true', help='show finished commands')
-    ap.add_argument('-a', dest='absolute_timeranges', action='store_true', help='show absolute time ranges in runtime')
+    ap.add_argument('-a', dest='absolute_timeranges', action='store_true', help='show cmd runtime as absolute time ranges')
     return ap
 
 
@@ -45,6 +44,12 @@ def touch(file):
 if __name__ == '__main__':
     ap = setup_argparser()
     args = ap.parse_args()
+    if args.queue:
+        args.queue_explicitly_set = True
+    else:
+        args.queue = 'default'
+        args.queue_explicitly_set = False
+
 
     os.makedirs(queues_dir, exist_ok=True)
     queue_file = queue_file_path(args.queue)
@@ -141,7 +146,7 @@ if __name__ == '__main__':
         q = qfile.load(running_file)
         rows = []
         for e in q:
-            if '-q' in sys.argv and args.queue != e['queue']:
+            if args.queue_explicitly_set and args.queue != e['queue']:
                 continue
             runtime = htdiff(now(), e['started'], args.absolute_timeranges)
             rows.append((e['queue'], cmdfmt(e), runtime, *envpwdfmt(e)))
@@ -150,7 +155,7 @@ if __name__ == '__main__':
         q = qfile.load(finished_file)
         rows = []
         for e in q:
-            if '-q' in sys.argv and args.queue != e['queue']:
+            if args.queue_explicitly_set and args.queue != e['queue']:
                 continue
             runtime = htdiff(e['finished'], e['started'], args.absolute_timeranges)
             rows.append((e['queue'], cmdfmt(e), str(e['returncode']), runtime, *envpwdfmt(e)))
@@ -160,7 +165,7 @@ if __name__ == '__main__':
         qf = reversed(qfile.load(finished_file))
         qs = []
         for queue in ls_queues():
-            if '-q' in sys.argv and args.queue != queue:
+            if args.queue_explicitly_set and args.queue != queue:
                 continue
             q = list(reversed(qfile.load(queue_file_path(queue))))
             enum_start = len(q)
@@ -172,9 +177,13 @@ if __name__ == '__main__':
         for e in qs:
             rows.append((e['queue'], cmdfmt(e), f"sched:{e['i']}", "", *envpwdfmt(e))) 
         for e in qr:
+            if args.queue_explicitly_set and args.queue != e['queue']:
+                continue
             runtime = htdiff(now(), e['started'], args.absolute_timeranges)
             rows.append((e['queue'], cmdfmt(e), "running", runtime, *envpwdfmt(e))) 
         for e in qf:
+            if args.queue_explicitly_set and args.queue != e['queue']:
+                continue
             runtime = htdiff(e['finished'], e['started'], args.absolute_timeranges)
             rows.append((e['queue'], cmdfmt(e), f"exit:{e['returncode']}", runtime, *envpwdfmt(e))) 
         table.print_table(('Queue', 'Command', 'Status', 'Runtime', 'Working directory', 'Environment'), rows, limit_col=5)
