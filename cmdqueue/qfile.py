@@ -44,7 +44,8 @@ def lock_file(file: str):
 
 
 def unlock_file(file: str):
-    if f := lockfds.get(file):
+    f = lockfds.get(file)
+    if f:
         fcntl.flock(f, fcntl.LOCK_UN)
 
 

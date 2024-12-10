@@ -21,7 +21,7 @@ def ls_queues() -> list:
 def cmdfmt(entry: dict) -> str:
     return ' '.join(entry['cmd'])
 
-def envpwdfmt(entry: dict) -> tuple[str, str]:
+def envpwdfmt(entry: dict):
     """pop PWD from entry"""
     env = entry['env'].copy()
     pwd = entry['env']['PWD']
