@@ -114,7 +114,10 @@ if __name__ == '__main__':
             if not q:
                 qfile.unlock_file(queue_file)
                 # TODO: inotify or look for mtime
-                time.sleep(1)
+                try:
+                    time.sleep(1)
+                except KeyboardInterrupt:
+                    sys.exit(0)
                 continue
             r = qfile.load(running_file, unlock=False)
             entry = q[0]
@@ -133,6 +136,22 @@ if __name__ == '__main__':
                 returncode = 127
             except PermissionError:
                 returncode = 126
+            except KeyboardInterrupt:
+                if config['running'].get('reschedule_on_interrupt'):
+                    q = qfile.load(queue_file, unlock=False)
+                    r = qfile.load(running_file, unlock=False)
+                    del entry['queue']
+                    del entry['qpid']
+                    del entry['started']
+                    if config['running'].get('reschedule_at_front', True):
+                        q.insert(0, entry)
+                    else:
+                        q.append(entry)
+                    r = [running_process for running_process in r if running_process['qpid'] != my_pid]
+                    cprint(f'Rescheduling cmd: {cmdfmt(entry)}', 'cyan')
+                    qfile.dump(r, running_file)
+                    qfile.dump(q, queue_file)
+                sys.exit(0)
             cprint(f"{entry['cmd'][0]} returned {returncode}", 'red' if returncode else 'green')
             entry['returncode'] = returncode
             entry['finished'] = now()

@@ -53,6 +53,9 @@ def ensure_existing_files():
             # If reschedule_orphaned_cmds is enabled this cmd will get rescheduled.
             reschedule_orphaned_cmds = true
 
+            # Reschedule a cmd when the runner executing that cmd is stopped by Ctrl+C
+            reschedule_on_interrupt = true
+
             # Reschedule orphaned cmds at the front (so to be executed next)
             # of the queue (if true) or at the back (executed last) otherwise.
             reschedule_at_front = true
