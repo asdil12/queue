@@ -12,7 +12,7 @@ setup(
     description='Queue shell commands',
     author='Dominik Heidler',
     author_email='dheidler@suse.de',
-    install_requires=['termcolor', 'tomlkit'],
+    install_requires=['termcolor', 'tomlkit', 'psutil'],
     packages=['cmdqueue'],
     scripts=['bin/queue'],
 )
