@@ -1,0 +1,6 @@
+-------------------------------------------------------------------
+Tue Dec 10 14:50:25 UTC 2024 - Dominik Heidler <dheidler@suse.de>
+
+- Version 0.7.0
+- Add relese script
+- Reschedule orphaned cmds at the front of queue
