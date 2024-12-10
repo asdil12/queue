@@ -31,7 +31,7 @@ def envpwdfmt(entry: dict):
     return pwd, tomlkit.dumps(env).strip().replace("\n", ", ")
 
 
-def ensure_existing_files(queue: str):
+def ensure_existing_files():
     os.makedirs(queues_dir, exist_ok=True)
     if not os.path.exists(config_file):
         default_config = textwrap.dedent("""
@@ -52,6 +52,10 @@ def ensure_existing_files(queue: str):
             # this leaves the cmd orphaned that was executed at that time.
             # If reschedule_orphaned_cmds is enabled this cmd will get rescheduled.
             reschedule_orphaned_cmds = true
+
+            # Reschedule orphaned cmds at the front (so to be executed next)
+            # of the queue (if true) or at the back (executed last) otherwise.
+            reschedule_at_front = true
         """)
         with open(config_file, 'w') as f:
             f.write(default_config)

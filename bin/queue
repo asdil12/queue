@@ -47,7 +47,7 @@ if __name__ == '__main__':
         args.queue = 'default'
         args.queue_explicitly_set = False
 
-    ensure_existing_files(args.queue)
+    ensure_existing_files()
     config = load_config()
 
     queue_file = queue_file_path(args.queue)
@@ -104,7 +104,10 @@ if __name__ == '__main__':
                     del ro['started']
                     cprint(f'Rescheduling orphaned cmd: {cmdfmt(ro)}', 'cyan')
                     q = qfile.load(queue_file_path(queue), unlock=False)
-                    q.append(ro)
+                    if config['running'].get('reschedule_at_front', True):
+                        q.insert(0, ro)
+                    else:
+                        q.append(ro)
                     qfile.dump(q, queue_file_path(queue))
 
             q = qfile.load(queue_file, unlock=False)
