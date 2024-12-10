@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Dec 10 17:20:12 UTC 2024 - Dominik Heidler <dheidler@suse.de>
+
+- Version 0.9.0
+- Switch to GPL3
+- Backport date handling to python 3.6
+
+-------------------------------------------------------------------
 Tue Dec 10 16:00:21 UTC 2024 - Dominik Heidler <dheidler@suse.de>
 
 - Version 0.8.0
