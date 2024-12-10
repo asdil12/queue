@@ -6,8 +6,8 @@ def now() -> str:
     return str(datetime.now().replace(microsecond=d.microsecond // 1000 * 1000)).strip('0')
 
 def htdiff(end, start, absolute=False) -> str:
-    end = datetime.fromisoformat(end)
-    start = datetime.fromisoformat(start)
+    end = datetime.strptime(end, "%Y-%m-%d %H:%M:%S.%f")
+    start = datetime.strptime(start, "%Y-%m-%d %H:%M:%S.%f")
     if absolute:
         if start.date() == end.date():
             end = end.time()
