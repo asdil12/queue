@@ -15,12 +15,14 @@ from cmdqueue import running_file, finished_file, queue_file_path, ls_queues, cm
 from cmdqueue import qfile
 from cmdqueue import table
 from cmdqueue.time import *
+from cmdqueue.version import __version__
 
 
 def setup_argparser():
     ap = argparse.ArgumentParser()
 
     ap.add_argument('cmd', nargs=argparse.REMAINDER, type=str, help="Add command to queue")
+    ap.add_argument('-v', '--version', action='version', version=f'queue version {__version__}')
     ap.add_argument('-E', dest='full_env', action='store_true', help='include full env')
     ap.add_argument('-e', metavar='ENV_VAR', dest='env_vars', action='append', help='env vars to include (can be repeatedly specified)')
     ap.add_argument('-q', dest='queue', help='queue to use (defaults to "default")')
