@@ -1,5 +1,4 @@
 import os
-import toml
 import tomlkit
 import textwrap
 
@@ -59,4 +58,4 @@ def ensure_existing_files(queue: str):
 
 def load_config() -> dict:
     with open(config_file, 'r') as f:
-        return toml.load(f)
+        return tomlkit.load(f)
