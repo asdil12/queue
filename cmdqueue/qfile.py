@@ -51,6 +51,7 @@ def unlock_file(file: str):
 
 
 def load(file: str, unlock=True) -> list:
+    touch(file)
     with open(file) as f:
         lock_file(file)
         s = f.read()
