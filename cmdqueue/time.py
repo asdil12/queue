@@ -5,9 +5,16 @@ def now() -> str:
     d = datetime.now()
     return str(datetime.now().replace(microsecond=d.microsecond // 1000 * 1000)).strip('0')
 
+def parse_isodate(s: str):
+    try:
+        d = datetime.strptime(s, "%Y-%m-%d %H:%M:%S.%f")
+    except ValueError:
+        d = datetime.strptime(s, "%Y-%m-%d %H:%M:%S")
+    return d
+
 def htdiff(end, start, absolute=False) -> str:
-    end = datetime.strptime(end, "%Y-%m-%d %H:%M:%S.%f")
-    start = datetime.strptime(start, "%Y-%m-%d %H:%M:%S.%f")
+    end = parse_isodate(end)
+    start = parse_isodate(start)
     if absolute:
         if start.date() == end.date():
             end = end.time()
