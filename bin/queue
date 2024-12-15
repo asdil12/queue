@@ -7,6 +7,7 @@ import math
 import time
 import psutil
 import subprocess
+import shlex
 from termcolor import cprint
 
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__) + '/..'))
@@ -49,6 +50,16 @@ if __name__ == '__main__':
 
     ensure_existing_files()
     config = load_config()
+
+    if config['pager'].get('use_pager') and os.environ.get('OPENED_WITH_PAGER') != '1' and not args.run:
+        pager = config['pager'].get('pager', 'less -XFRS')
+        env = os.environ.copy()
+        penv = config['pager'].get('env', {'FORCE_COLOR': '1'})
+        penv = {str(k): str(v) for k, v in penv.items()}
+        env.update(penv)
+        env['OPENED_WITH_PAGER'] = '1'
+        p = subprocess.run(f"{shlex.join(sys.argv)} | {pager}", env=env, shell=True)
+        sys.exit(p.returncode)
 
     queue_file = queue_file_path(args.queue)
 

@@ -59,6 +59,13 @@ def ensure_existing_files():
             # Reschedule orphaned cmds at the front (so to be executed next)
             # of the queue (if true) or at the back (executed last) otherwise.
             reschedule_at_front = true
+
+            [pager]
+            use_pager = false
+            pager = "less -XFRS"
+
+            [pager.env]
+            FORCE_COLOR = 1
         """)
         with open(config_file, 'w') as f:
             f.write(default_config)
