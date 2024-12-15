@@ -89,6 +89,7 @@ if __name__ == '__main__':
 
     elif args.run:
         my_pid = os.getpid()
+        cprint(f'Running commands from queue: {args.queue}', 'cyan')
         while True:
             # reschedule or cleanup orphaned cmd entries in running_file
             r = qfile.load(running_file, unlock=False)
