@@ -20,7 +20,7 @@ from cmdqueue.version import __version__
 
 
 def setup_argparser():
-    ap = argparse.ArgumentParser()
+    ap = argparse.ArgumentParser(epilog="The config file is located at ~/.config/queue/config.toml")
 
     ap.add_argument('cmd', nargs=argparse.REMAINDER, type=str, help="Add command to queue")
     ap.add_argument('-v', '--version', action='version', version=f'queue version {__version__}')
