@@ -27,4 +27,4 @@ osc diff
 
 read -p "Submit RPM? "
 osc ci
-#osc sr
+osc sr
