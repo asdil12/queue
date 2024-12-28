@@ -8,6 +8,7 @@ import time
 import psutil
 import subprocess
 import shlex
+import termcolor
 from termcolor import cprint
 
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__) + '/..'))
@@ -240,7 +241,7 @@ if __name__ == '__main__':
         color_rows = []
         for e in qs:
             rows.append([e['queue'], cmdfmt(e), f"sched:{e['i']}", "", *envpwdfmt(e)])
-            color_rows.append(['dark_grey']*6)
+            color_rows.append(['dark_grey' if 'dark_grey' in termcolor.COLORS else None]*6)
         for e in qr:
             if args.queue_explicitly_set and args.queue != e['queue']:
                 continue
