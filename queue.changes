@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Sat Dec 28 17:01:51 UTC 2024 - Dominik Heidler <dheidler@suse.de>
+
+- Version 1.1.0
+- Color scheduled and running entries differently
+- Enable multi column limiting
+- Add hint about config location
+
+-------------------------------------------------------------------
 Mon Dec 16 14:41:53 UTC 2024 - Dominik Heidler <dheidler@suse.de>
 
 - Version 1.0.0
