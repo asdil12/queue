@@ -87,7 +87,7 @@ if __name__ == '__main__':
             running = len([e for e in qfile.load(running_file) if e['queue'] == queue])
             finished = len([e for e in qfile.load(finished_file) if e['queue'] == queue])
             rows.append([queue, str(scheduled), str(running), str(finished)])
-        table.print_table(('Queue', 'Scheduled', 'Running', 'Finished'), rows, limit_col=0)
+        table.print_table(['Queue', 'Scheduled', 'Running', 'Finished'], rows, limit_col=0)
 
     elif args.list:
         q = qfile.load(queue_file)
@@ -95,8 +95,8 @@ if __name__ == '__main__':
         id_len = math.floor(math.log10(max(len(q),1))) + 1
         for i, e in enumerate(q):
             i += 1
-            rows.append((f"{i:>{id_len}}", cmdfmt(e), *envpwdfmt(e)))
-        table.print_table((f"{'#':>{id_len}}", 'Command', 'Working directory', 'Environment'), rows, limit_col=3)
+            rows.append([f"{i:>{id_len}}", cmdfmt(e), *envpwdfmt(e)])
+        table.print_table([f"{'#':>{id_len}}", 'Command', 'Working directory', 'Environment'], rows, limit_col=3)
 
     elif args.run:
         my_pid = os.getpid()
@@ -207,9 +207,9 @@ if __name__ == '__main__':
                 continue
             runtime = htdiff(now(), e['started'], args.absolute_timeranges)
             orphaned = not psutil.pid_exists(e['qpid'])
-            rows.append((e['queue'], cmdfmt(e), runtime, *envpwdfmt(e)))
+            rows.append([e['queue'], cmdfmt(e), runtime, *envpwdfmt(e)])
             color_rows.append(['red']*5 if orphaned else None)
-        table.print_table(('Queue', 'Command', 'Runtime', 'Working directory', 'Environment'), rows, limit_col=4, colors=color_rows)
+        table.print_table(['Queue', 'Command', 'Runtime', 'Working directory', 'Environment'], rows, limit_col=4, colors=color_rows)
 
     elif args.show_finished:
         q = qfile.load(finished_file)
@@ -219,9 +219,9 @@ if __name__ == '__main__':
             if args.queue_explicitly_set and args.queue != e['queue']:
                 continue
             runtime = htdiff(e['finished'], e['started'], args.absolute_timeranges)
-            rows.append((e['queue'], cmdfmt(e), str(e['returncode']), runtime, *envpwdfmt(e)))
+            rows.append([e['queue'], cmdfmt(e), str(e['returncode']), runtime, *envpwdfmt(e)])
             color_rows.append(['red']*6 if e['returncode'] else None)
-        table.print_table(('Queue', 'Command', 'Status', 'Runtime', 'Working directory', 'Environment'), rows, limit_col=5, colors=color_rows)
+        table.print_table(['Queue', 'Command', 'Status', 'Runtime', 'Working directory', 'Environment'], rows, limit_col=5, colors=color_rows)
 
     else:
         qr = reversed(qfile.load(running_file))
@@ -239,19 +239,19 @@ if __name__ == '__main__':
         rows = []
         color_rows = []
         for e in qs:
-            rows.append((e['queue'], cmdfmt(e), f"sched:{e['i']}", "", *envpwdfmt(e))) 
+            rows.append([e['queue'], cmdfmt(e), f"sched:{e['i']}", "", *envpwdfmt(e)])
             color_rows.append(None)
         for e in qr:
             if args.queue_explicitly_set and args.queue != e['queue']:
                 continue
             runtime = htdiff(now(), e['started'], args.absolute_timeranges)
             orphaned = not psutil.pid_exists(e['qpid'])
-            rows.append((e['queue'], cmdfmt(e), "running", runtime, *envpwdfmt(e))) 
+            rows.append([e['queue'], cmdfmt(e), "running", runtime, *envpwdfmt(e)])
             color_rows.append(['red']*6 if orphaned else None)
         for e in qf:
             if args.queue_explicitly_set and args.queue != e['queue']:
                 continue
             runtime = htdiff(e['finished'], e['started'], args.absolute_timeranges)
-            rows.append((e['queue'], cmdfmt(e), f"exit:{e['returncode']}", runtime, *envpwdfmt(e))) 
+            rows.append([e['queue'], cmdfmt(e), f"exit:{e['returncode']}", runtime, *envpwdfmt(e)])
             color_rows.append(['red']*6 if e['returncode'] else None)
-        table.print_table(('Queue', 'Command', 'Status', 'Runtime', 'Working directory', 'Environment'), rows, limit_col=5, colors=color_rows)
+        table.print_table(['Queue', 'Command', 'Status', 'Runtime', 'Working directory', 'Environment'], rows, limit_col=[5,4], colors=color_rows)
