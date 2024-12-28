@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Sat Dec 28 20:52:45 UTC 2024 - Dominik Heidler <dheidler@suse.de>
+
+- Version 1.2.0
+- Only use dark_grey if available
+- Do osc sr in release.sh
+
+-------------------------------------------------------------------
 Sat Dec 28 17:01:51 UTC 2024 - Dominik Heidler <dheidler@suse.de>
 
 - Version 1.1.0
