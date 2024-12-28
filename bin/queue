@@ -240,14 +240,14 @@ if __name__ == '__main__':
         color_rows = []
         for e in qs:
             rows.append([e['queue'], cmdfmt(e), f"sched:{e['i']}", "", *envpwdfmt(e)])
-            color_rows.append(None)
+            color_rows.append(['dark_grey']*6)
         for e in qr:
             if args.queue_explicitly_set and args.queue != e['queue']:
                 continue
             runtime = htdiff(now(), e['started'], args.absolute_timeranges)
             orphaned = not psutil.pid_exists(e['qpid'])
             rows.append([e['queue'], cmdfmt(e), "running", runtime, *envpwdfmt(e)])
-            color_rows.append(['red']*6 if orphaned else None)
+            color_rows.append(['red']*6 if orphaned else ['cyan']*6)
         for e in qf:
             if args.queue_explicitly_set and args.queue != e['queue']:
                 continue
